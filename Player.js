@@ -31,9 +31,9 @@
 
     Player.prototype.tick = function () {
         if (this.KEY_RIGHT) {
-            this.x += 4;
+            this.x += 8;
         } else if (this.KEY_LEFT) {
-            this.x -= 4;
+            this.x -= 8;
         }
         //console.log(this.x,this.y);
     }

@@ -3,16 +3,20 @@
 
 <title>Airplane Adventure</title>
 
+
+<link href='http://fonts.googleapis.com/css?family=PT+Mono' rel='stylesheet' type='text/css'>
 <style>
     #stageCanvas
     {
-        background-color:#333333;
+        background-color:#5be9ec;
+        font-family: 'PT Mono', sans-serif;
     }
 </style>
 
 <script src="easel.js"></script>
 <script src="ContentManager.js"></script>
 <script src="Player.js"></script>
+<script src="Kid.js"></script>
 
 <script>
     var stage;
@@ -36,17 +40,23 @@
     /* Sprites */
     var player;
     var bg;
+    var clouds;
     var NR_KIDS = 4;
     var kids = new Array(NR_KIDS);
     var progress_bar;
     var progress_bar_border;
+    var icons_sheet;
+    var fire_icon;
+    var water_icon;
+    var food_icon;
+    var magazine_icon;
     
 
     /* Filler text */
 
-    var msgs_hungry = new Array("Ugh, this blows!\nShould have packed more butter.","Mom! Where are the Cheetos?");
-    var msgs_thirsty = new Array("No more Mountain Dew?\n I'm gonna die of thirst!","Where is the\nflight attendant!\nI ran out of\nmy complementary\napple juice!.");
-    var msgs_cold = new Array("Where's my North Face jacket???","I think I have frostbite, Mom.\nI can't feel my legs.\nI can't.");
+    var msgs_hungry = new Array("Ugh, this blows!\nShould have packed\nmore butter.","Mom! Where're\nthe Cheetos?");
+    var msgs_thirsty = new Array("No more Mountain Dew?\n I'm gonna die\nof thirst!","Where is the\nflight attendant!\nI ran out of\nmy complementary\napple juice!.");
+    var msgs_cold = new Array("Where's my\nNorth Face jacket???","I think I have\nfrostbite, Mom.\nI can't feel my legs.\nI can't.");
     var msgs_spoiled = new Array("Ugh. Internet doesn't\n work on the airplane? \n What the hell?","My iPhone died\n after 12 hours!\nWhat crappy battery life!");
     
     /* Various game state/timers */
@@ -65,12 +75,8 @@
     
     var action_latency = 1.5; // Latency between actions
     var action_timer = 0.0; //Incremented after an action performed, set to zero when greater than action_latency.
-    var score = 0;
+    var score = new Text("Time under control: 0s","20px PT Mono","#FFF");
     
-    
-
-    
-
 
     /* Timer */
     var timer = 0.0;
@@ -79,6 +85,7 @@
 
     function init() {
         canvas = document.getElementById("stageCanvas");
+        sound_note = document.getElementById("note");
         bounds = new Rectangle();
         bounds.width = canvas.width;
         bounds.height = canvas.height;
@@ -94,29 +101,27 @@
         document.onkeydown = handleKeyDown;
         document.onkeyup = handleKeyUp;
 
+        clouds = new Bitmap(contentManager.img_clouds);
+        clouds.y = 120;
+        stage.addChild(clouds);
         bg = new Bitmap(contentManager.img_bg);
         stage.addChild(bg);
 
-            for (var i = 0; i < NR_KIDS; i++) {
+        var types = new Array("boy","girl","boy","girl");
+        for (var i = 0; i < NR_KIDS; i++) {
             kids[i] = new Bitmap(contentManager.img_kid_placeholder);
-            kids[i].y = 160;
-            kids[i].x = 30 + 150*i;
-            kid_texts[i] = new Text(" ","20px");
-            
+            kids[i] = new Kid(contentManager.img_kids,30+150*i,160,types[i]);
+            kid_texts[i] = new Text(" ","12px PT Mono");
             changeKidInfo(i);
             stage.addChild(kids[i]);
-            }
+        }
     
 
         player = new Player(contentManager.img_player, 30, 30);
         player.x = 30;
-        player.y = 110;
+        player.y = 140;
         stage.addChild(player);
 
-        txt = new Text("I am a line of text.\nI'm another!");
-        txt.x = 200;
-        txt.y = 200;
-        stage.addChild(txt);
 
         progress_bar_border = new Bitmap(contentManager.img_progress_bar_border);
         progress_bar_border.x = 372;
@@ -127,6 +132,19 @@
         progress_bar.x = 380;
         progress_bar.y = 20;
         stage.addChild(progress_bar);
+        
+        stage.addChild(score);
+        score.x = 300;
+        score.y = 80;
+        
+        icons_sheet = new SpriteSheet({
+            images: [contentManager.img_icons],
+            frames: {width: 64, height: 64},
+            animations: {}
+        });
+        fire_icon = new Bitmap(icons_sheet.getFrame(0).image);
+        stage.addChild(fire_icon);
+        
         
         for (var i = 0; i < NR_KIDS; i++) {
             stage.addChild(kid_texts[i]);
@@ -155,9 +173,9 @@
                 kid_texts[i].text = msgs_spoiled[parseInt(Math.random() * msgs_hungry.length)];
                 break;
         }
-        kid_texts[i].x = kids[i].x;
-        kid_texts[i].y = kids[i].y;
-        kid_texts[i].text.size = "20px arial";
+        kid_texts[i].x = kids[i].x - 20;
+        kid_texts[i].y = kids[i].y - 30;
+        kid_texts[i].text.size = "12px PT Mono";
     }
     /* Update the kid timer. If greater than the angry time, 
      * accelerate the filling of the "lose" bar. Also change the current
@@ -166,35 +184,53 @@
         kid_timers[i] += dt;
         if (kid_timers[i] > angry_time) {
             kid_texts[i].text = kid_texts[i].text.toUpperCase();
-            kid_texts[i].font = "30px arial";
+            kid_texts[i].font = "12px PT Mono";
+            progress_bar.scaleX += 0.2;
         }
     }
     function tick() {
+        tiny_loop.play();
         toc = Ticker.getTime(false);
         dt = (toc - tic)/1000.0;
         if (tic == 0) dt = 0;
         tic = toc; 
 
         player.tick();
-        progress_bar.scaleX += dt;
+        if (timer < 15) {
+            progress_bar.scaleX += 1*dt;
+        } else if (timer < 30) {
+            progress_bar.scaleX += 3*dt;
+        } else if (timer < 45) {
+            progress_bar.scaleX += 5*dt;
+        } else {
+            progress_bar.scaleX += 6*dt;
+        } 
         timer += dt;
+        score.text = "Time under control: "+timer.toString()+"s";
         
         //Update the timers of the kids
         for (var i = 0; i < NR_KIDS; i++) {
             updateKidTimer(i,dt);
         }
 
-        if (KEY_JUSTPRESSED_A) {
+        if (KEY_JUSTPRESSED_A || KEY_JUSTPRESSED_S || KEY_JUSTPRESSED_D || KEY_JUSTPRESSED_F) {
             checkOverlaps();
             KEY_JUSTPRESSED_A = false;
+            KEY_JUSTPRESSED_S = false;
+            KEY_JUSTPRESSED_D = false;
+            KEY_JUSTPRESSED_F = false;
+            
         }
-        txt.text = timer.toString();
+
+        clouds.x += 8; 
+        if (clouds.x > 640) clouds.x = -640;
         stage.update();
     }
 
     function checkOverlaps() {
         var overlaps = false;
         var overlap_id = -1;
+        // Check for overlap, which depends on what direction we're facing
         for (var i = 0; i < NR_KIDS; i++) {
             if (player.dir == 1) {
                if ((player.x + PLAYER_WIDTH) > kids[i].x && (player.x + PLAYER_WIDTH) < (kids[i].x + KID_WIDTH)) {
@@ -210,9 +246,41 @@
                 }
             }  
         }
+        // If we overlap make sure the right action was chosen
         if (overlaps == true) {
-           changeKidInfo(overlap_id); 
-           kid_timers[overlap_id] = 0.0;
+            var isCorrect = false;
+            if (KEY_JUSTPRESSED_A) {
+                if (kid_states[overlap_id] == S_COLD) {
+                   isCorrect = true;
+                }
+            } else if (KEY_JUSTPRESSED_S) {
+                if (kid_states[overlap_id] == S_THIRSTY) {
+                   isCorrect = true;
+                }
+            } else if (KEY_JUSTPRESSED_D) {
+                if (kid_states[overlap_id] == S_HUNGRY) {
+                   isCorrect = true;
+                }
+            } else if (KEY_JUSTPRESSED_F) {
+                if (kid_states[overlap_id] == S_SPOILED) {
+                   isCorrect = true;
+                }
+            }
+            if (isCorrect) {   
+                changeKidInfo(overlap_id);
+                if (kids[i].type == "boy") sound_boy.play();
+                if (kids[i].type == "girl") sound_girl.play();
+                kid_timers[overlap_id] = 0.0;
+                //correct_sound.play();
+                progress_bar.scaleX -= 10;
+            } else {
+                sound_buzzer.play();
+                //player.gotoAndPlay("wrong");
+                progress_bar.scaleX += 15; 
+            }
+        } else {
+           //player.gotoAndPlay("confused");
+           //buzz_sound.play();
         }
     }
     function handleKeyDown(e) {
@@ -244,6 +312,16 @@
             case KEYCODE_A:
                 KEY_JUSTPRESSED_A = true;
                 break;
+            case KEYCODE_S:
+                KEY_JUSTPRESSED_S = true;
+                break;
+            case KEYCODE_D:
+                KEY_JUSTPRESSED_D = true;
+                break; 
+            case KEYCODE_F:
+                KEY_JUSTPRESSED_F = true;
+                break;
+
         }
     }
 </script>
@@ -254,6 +332,11 @@
 <body onload="init()">
     <div width="640" height="480" id="canvasWrapper">
         <canvas width="640" height="480" id="stageCanvas"></canvas>
+        <audio id="note" src="res/notefx1.mp3" type="audio/mp3"> </audio>
+        <audio id="sound_buzzer" src = "res/buzzer.mp3" type = "audio/mp3"> </audio>
+        <audio id="sound_girl" src = "res/girl-voice.mp3" type = "audio/mp3" </audio>
+        <audio id="sound_boy" src = "res/boy-voice.mp3" type = "audio/mp3"></audio>
+        <audio id="tiny_loop" src = "res/tiny_loop.mp3" type = "audio/mp3"> </audio>
     </div>
 </body>
 </html>
