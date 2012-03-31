@@ -55,10 +55,10 @@
 
     /* Filler text */
 
-    var msgs_hungry = new Array("Ugh, this blows!\nShould have packed\nmore butter.","Mom! Where're\nthe Cheetos?");
-    var msgs_thirsty = new Array("No more Mountain Dew?\n I'm gonna die\nof thirst!","Where is the\nflight attendant!\nI ran out of\nmy complementary\napple juice!.");
-    var msgs_cold = new Array("Where's my\nNorth Face jacket???","I think I have\nfrostbite, Mom.\nI can't feel my legs.\nI can't.");
-    var msgs_spoiled = new Array("Ugh. Internet doesn't\n work on the airplane? \n What the hell?","My iPhone died\n after 12 hours!\nWhat crappy battery life!");
+    var msgs_hungry = new Array("Ugh, this blows!\nShould have packed\nmore butter.","Mom! Where're\nthe Cheetos?","I can't stand\nto look at this\npoor excuse for\na steak.","The snack bar\nonly has LAYS.\nWho eats LAYS?","The last time\nI was on an\nairplane, they\ngave me TWO bags\nof peanuts!","I refuse to eat\nthis. It looks\nlike a turd.");
+    var msgs_thirsty = new Array("No more Mountain Dew?\n I'm gonna die\nof thirst!","Where is the\nflight attendant!\nI ran out of\nmy complementary\napple juice!.","It's like a\ndesert in here,\nI swear!","I am a consumer.\nI only drink\nthe finest of\ndrinks.","Did you get this\nwater from the\ntoilet?");
+    var msgs_cold = new Array("Where's my\nNorth Face jacket???","I think I have\nfrostbite, Mom.\nI can't feel my legs.\nI can't.","Did they run\nout of money\n for the electricity\nbill or something?","I think I feel\na draft.","I'm freezing!");
+    var msgs_spoiled = new Array("Ugh. Internet doesn't\n work on the airplane? \n What the hell?","My iPhone died\n after 12 hours!\nWhat crappy battery life!","APPLE APPLE\nAPPLE APPLE\nI AM A CONSUMER\nMORE MORE MORE","The leather coat\nmy mom bought\nme wasn't very\n good, so I\nthrew it away.","Ugh, first class\nis gross. Who could\never stay in here?","I asked for\nfour pillows.\nI cannot sleep\nlike a hobo.");
     
     /* Various game state/timers */
     var IN_INTRO = true;
@@ -188,10 +188,10 @@
                 kid_texts[i].text = msgs_thirsty[parseInt(Math.random() * msgs_thirsty.length)];
                 break;
             case S_COLD:
-                kid_texts[i].text = msgs_cold[parseInt(Math.random() * msgs_hungry.length)];
+                kid_texts[i].text = msgs_cold[parseInt(Math.random() * msgs_cold.length)];
                 break;
             case S_SPOILED:
-                kid_texts[i].text = msgs_spoiled[parseInt(Math.random() * msgs_hungry.length)];
+                kid_texts[i].text = msgs_spoiled[parseInt(Math.random() * msgs_spoiled.length)];
                 break;
         }
         kid_texts[i].x = kids[i].x - 20;
@@ -232,7 +232,7 @@
             if (ending.y >= 100) {
                 ending.y -= 15;
             } else {
-                ending_text.text = "Well, no, the story doesn't end\n THAT morbidly.\nYou kept those kids under\ncontrol for "+timer.toFixed(2)+"+ seconds. Nicely done.\n If you want to try again,\n just refresh the page.";
+                ending_text.text = "Well, no, the story doesn't end\n THAT morbidly.\nYou kept those kids under\ncontrol for "+timer.toFixed(2)+" seconds. Nicely done.\n If you want to try again,\n just refresh the page.";
             }
             
             stage.update();
