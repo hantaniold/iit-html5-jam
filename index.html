@@ -16,9 +16,6 @@
 
 <script>
     var stage;
-    var circle;
-    var CIRCLE_RADIUS = 10;
-    var circleXReset;
     var bounds;
     var canvas;
     var contentManager;
@@ -26,10 +23,59 @@
     /* Keypress bindings? */
     var KEYCODE_LEFT = 37;
     var KEYCODE_RIGHT = 39;
+    var KEYCODE_A = 65;
+    var KEYCODE_S = 83;
+    var KEYCODE_D = 68;
+    var KEYCODE_F = 70;
+    var KEY_JUSTPRESSED_A = false;
+    var KEY_JUSTPRESSED_S = false;
+    var KEY_JUSTPRESSED_D = false;
+    var KEY_JUSTPRESSED_F = false;
+    
 
     /* Sprites */
     var player;
     var bg;
+    var NR_KIDS = 4;
+    var kids = new Array(NR_KIDS);
+    var progress_bar;
+    var progress_bar_border;
+    
+
+    /* Filler text */
+
+    var msgs_hungry = new Array("Ugh, this blows!\nShould have packed more butter.","Mom! Where are the Cheetos?");
+    var msgs_thirsty = new Array("No more Mountain Dew?\n I'm gonna die of thirst!","Where is the\nflight attendant!\nI ran out of\nmy complementary\napple juice!.");
+    var msgs_cold = new Array("Where's my North Face jacket???","I think I have frostbite, Mom.\nI can't feel my legs.\nI can't.");
+    var msgs_spoiled = new Array("Ugh. Internet doesn't\n work on the airplane? \n What the hell?","My iPhone died\n after 12 hours!\nWhat crappy battery life!");
+    
+    /* Various game state/timers */
+    var S_HUNGRY = 1;
+    var S_THIRSTY = 2;
+    var S_COLD = 3;
+    var S_SPOILED = 4;
+    var NR_STATES = 4;
+    var KID_WIDTH = 100; //Hard coded oh well
+    var PLAYER_WIDTH = 100;
+    var kid_texts = new Array(NR_STATES);
+    var kid_timers = new Array(0.0,1.5,5,3.0); //Time at which msgs appear
+    var kid_justAngered = new Array(false,false,false,false);
+    var kid_states = new Array(0,0,0,0);
+    var angry_time = 5.0; //Time at which kids get angry. 
+    
+    var action_latency = 1.5; // Latency between actions
+    var action_timer = 0.0; //Incremented after an action performed, set to zero when greater than action_latency.
+    var score = 0;
+    
+    
+
+    
+
+
+    /* Timer */
+    var timer = 0.0;
+    var tic = 0.0;
+    var toc = 0.0;
 
     function init() {
         canvas = document.getElementById("stageCanvas");
@@ -48,43 +94,139 @@
         document.onkeydown = handleKeyDown;
         document.onkeyup = handleKeyUp;
 
-        var g = new Graphics();
-        g.setStrokeStyle(1);
-        g.beginStroke(Graphics.getRGB(255,255,255,.7));
-        g.drawCircle(0,0,CIRCLE_RADIUS);
-        circle = new Shape(g);
-        circle.x = circleXReset = -CIRCLE_RADIUS;
-        circle.y = canvas.height / 2;
-        stage.addChild(circle);
+        bg = new Bitmap(contentManager.img_bg);
+        stage.addChild(bg);
 
+            for (var i = 0; i < NR_KIDS; i++) {
+            kids[i] = new Bitmap(contentManager.img_kid_placeholder);
+            kids[i].y = 160;
+            kids[i].x = 30 + 150*i;
+            kid_texts[i] = new Text(" ","20px");
+            
+            changeKidInfo(i);
+            stage.addChild(kids[i]);
+            }
+    
 
         player = new Player(contentManager.img_player, 30, 30);
         player.x = 30;
-        player.y = 30;
+        player.y = 110;
         stage.addChild(player);
+
+        txt = new Text("I am a line of text.\nI'm another!");
+        txt.x = 200;
+        txt.y = 200;
+        stage.addChild(txt);
+
+        progress_bar_border = new Bitmap(contentManager.img_progress_bar_border);
+        progress_bar_border.x = 372;
+        progress_bar_border.y = 12;
+        stage.addChild(progress_bar_border);
+
+        progress_bar = new Bitmap(contentManager.img_progress_bar);
+        progress_bar.x = 380;
+        progress_bar.y = 20;
+        stage.addChild(progress_bar);
+        
+        for (var i = 0; i < NR_KIDS; i++) {
+            stage.addChild(kid_texts[i]);
+        }
+        
         stage.update();
         Ticker.addListener(window);
-        Ticker.setFPS(60);
+        Ticker.setFPS(30);
         Ticker.useRAF = true;
     }
        
-    function tick() {
-        if (circle.x > bounds.width) {
-            circle.x = circleXReset;
+    /* Update a kid to have a new timer, text, and state. Reset its image. */
+    function changeKidInfo(i) {
+        kid_states[i] = parseInt(Math.random() * NR_STATES) + 1;
+        switch (kid_states[i]) {
+            case S_HUNGRY:
+                kid_texts[i].text = msgs_hungry[parseInt(Math.random() * msgs_hungry.length)];
+                break;
+            case S_THIRSTY:
+                kid_texts[i].text = msgs_thirsty[parseInt(Math.random() * msgs_thirsty.length)];
+                break;
+            case S_COLD:
+                kid_texts[i].text = msgs_cold[parseInt(Math.random() * msgs_hungry.length)];
+                break;
+            case S_SPOILED:
+                kid_texts[i].text = msgs_spoiled[parseInt(Math.random() * msgs_hungry.length)];
+                break;
         }
-        circle.x += 8;
+        kid_texts[i].x = kids[i].x;
+        kid_texts[i].y = kids[i].y;
+        kid_texts[i].text.size = "20px arial";
+    }
+    /* Update the kid timer. If greater than the angry time, 
+     * accelerate the filling of the "lose" bar. Also change the current
+     * displayed message to CAPS and change its color/size. */
+    function updateKidTimer(i,dt) {
+        kid_timers[i] += dt;
+        if (kid_timers[i] > angry_time) {
+            kid_texts[i].text = kid_texts[i].text.toUpperCase();
+            kid_texts[i].font = "30px arial";
+        }
+    }
+    function tick() {
+        toc = Ticker.getTime(false);
+        dt = (toc - tic)/1000.0;
+        if (tic == 0) dt = 0;
+        tic = toc; 
+
         player.tick();
+        progress_bar.scaleX += dt;
+        timer += dt;
+        
+        //Update the timers of the kids
+        for (var i = 0; i < NR_KIDS; i++) {
+            updateKidTimer(i,dt);
+        }
+
+        if (KEY_JUSTPRESSED_A) {
+            checkOverlaps();
+            KEY_JUSTPRESSED_A = false;
+        }
+        txt.text = timer.toString();
         stage.update();
     }
 
+    function checkOverlaps() {
+        var overlaps = false;
+        var overlap_id = -1;
+        for (var i = 0; i < NR_KIDS; i++) {
+            if (player.dir == 1) {
+               if ((player.x + PLAYER_WIDTH) > kids[i].x && (player.x + PLAYER_WIDTH) < (kids[i].x + KID_WIDTH)) {
+                    overlaps = true;
+                    overlap_id = i;
+                    break;
+                }
+            } else {
+                if (player.x > kids[i].x && player.x < (kids[i].x + KID_WIDTH)) {
+                    overlaps = true;
+                    overlap_id = i;
+                    break;
+                }
+            }  
+        }
+        if (overlaps == true) {
+           changeKidInfo(overlap_id); 
+           kid_timers[overlap_id] = 0.0;
+        }
+    }
     function handleKeyDown(e) {
         if (!e) { var e = window.event; } //No clue.
         switch (e.keyCode) {
             case KEYCODE_LEFT: 
                 player.KEY_LEFT = true;
+                player.dir = -1;
+                player.gotoAndPlay("idle_l");
                 break;
             case KEYCODE_RIGHT:
                 player.KEY_RIGHT = true;
+                player.gotoAndPlay("idle_r");
+                player.dir = 1;
                 break;
         
         }
@@ -98,6 +240,9 @@
                 break;
             case KEYCODE_RIGHT:
                 player.KEY_RIGHT = false;
+                break;
+            case KEYCODE_A:
+                KEY_JUSTPRESSED_A = true;
                 break;
         }
     }

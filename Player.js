@@ -10,19 +10,22 @@
         this.x = x;
         this.y = y;
    
+        this.dir = -1;
         var localSpriteSheet = new SpriteSheet({
             images: [imgPlayer],
-            frames:  {width: 60, height:200},
+            frames:  {width: 100, height:300},
             animations: {
-                idle: [0,3,"idle",4]
+                idle_l: [0,0,"idle_l",10],
+                idle_r: [1,1,"idle_r",10]
             }
         });
 
         this.KEY_RIGHT = false;
         this.KEY_LEFT = false;
+    
 
         this.BitmapAnimation_initialize(localSpriteSheet);
-        this.gotoAndPlay("idle");
+        this.gotoAndPlay("idle_l");
         this.currentFrame = 0;
     }
 

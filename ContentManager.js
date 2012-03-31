@@ -3,19 +3,25 @@
 function ContentManager() {
 
     var ondownloadcompleted;
-    var NR_TO_DL = 2;
+    var NR_TO_DL = 4;
     this.SetDownloadCompleted = function (callbackMethod) {
         ondownloadcompleted = callbackMethod;
     }
 
     this.img_bg = new Image();
     this.img_player = new Image();
+    this.img_kid_placeholder = new Image();
+    this.img_progress_bar = new Image();
+    this.img_progress_bar_border = new Image();
 
     var NR_LOADED = 0;
     
     this.StartDownload = function() {
         SetDownloadParameters(this.img_bg,"res/bg.png",handleImageLoad,handleImageError);
+        SetDownloadParameters(this.img_kid_placeholder,"res/kid_placeholder.png",handleImageLoad,handleImageError);
         SetDownloadParameters(this.img_player,"res/player.png",handleImageLoad,handleImageError);
+        SetDownloadParameters(this.img_progress_bar,"res/progress_bar.png",handleImageLoad,handleImageError);
+        SetDownloadParameters(this.img_progress_bar_border,"res/progress_bar_border.png",handleImageLoad,handleImageError);
     }
 
 
