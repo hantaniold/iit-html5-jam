@@ -1,7 +1,7 @@
 <html lang="en"> 
 <head>
 
-<title>Airplane Adventure</title>
+<title>IN THE AEROPLANE OVER THE MYSTERY</title>
 
 
 <link href='http://fonts.googleapis.com/css?family=PT+Mono' rel='stylesheet' type='text/css'>
@@ -50,7 +50,8 @@
     var water_icon;
     var food_icon;
     var magazine_icon;
-    
+    var tutorial;
+    var ending;
 
     /* Filler text */
 
@@ -60,6 +61,9 @@
     var msgs_spoiled = new Array("Ugh. Internet doesn't\n work on the airplane? \n What the hell?","My iPhone died\n after 12 hours!\nWhat crappy battery life!");
     
     /* Various game state/timers */
+    var IN_INTRO = true;
+    var IN_ENDING = false;
+
     var S_HUNGRY = 1;
     var S_THIRSTY = 2;
     var S_COLD = 3;
@@ -68,10 +72,13 @@
     var KID_WIDTH = 100; //Hard coded oh well
     var PLAYER_WIDTH = 100;
     var kid_texts = new Array(NR_STATES);
+    var player_text = new Text("","20px PT Mono","#A22");
+    var ending_text = new Text("","20px PT Mono");
     var kid_timers = new Array(0.0,1.5,5,3.0); //Time at which msgs appear
     var kid_justAngered = new Array(false,false,false,false);
     var kid_states = new Array(0,0,0,0);
     var angry_time = 5.0; //Time at which kids get angry. 
+    var end_time = 0.0;
     
     var action_latency = 1.5; // Latency between actions
     var action_timer = 0.0; //Incremented after an action performed, set to zero when greater than action_latency.
@@ -149,6 +156,20 @@
         for (var i = 0; i < NR_KIDS; i++) {
             stage.addChild(kid_texts[i]);
         }
+        stage.addChild(player_text);
+
+        tutorial = new Bitmap(contentManager.img_tutorial);
+        tutorial.x = 0;
+        tutorial.y = 0;
+        stage.addChild(tutorial);
+
+        ending = new Bitmap(contentManager.img_ending);
+        ending.x = 120;
+        ending.y = 640;
+        stage.addChild(ending);
+        ending_text.x = 130;
+        ending_text.y = 140;
+        stage.addChild(ending_text);
         
         stage.update();
         Ticker.addListener(window);
@@ -189,6 +210,35 @@
         }
     }
     function tick() {
+
+        if (IN_INTRO) {
+            if (KEY_JUSTPRESSED_A) {
+                IN_INTRO = false;
+                stage.removeChild(tutorial);
+                KEY_JUSTPRESSED_A = false;
+            } else {
+                return;
+            }
+        }
+        if (IN_ENDING) {
+            if (KEY_JUSTPRESSED_A) {
+                
+            }
+            bg.y += 10*Math.random();
+            player.y += 10*Math.random();
+            for (var i = 0; i < NR_KIDS; i++) {
+                kids[i].y += 10*Math.random();
+            }
+            if (ending.y >= 100) {
+                ending.y -= 15;
+            } else {
+                ending_text.text = "Well, no, the story doesn't end\n THAT morbidly.\nYou kept those kids under\ncontrol for "+timer.toFixed(2)+"+ seconds. Nicely done.\n If you want to try again,\n just refresh the page.";
+            }
+            
+            stage.update();
+            return;
+        }
+        
         tiny_loop.play();
         toc = Ticker.getTime(false);
         dt = (toc - tic)/1000.0;
@@ -196,6 +246,34 @@
         tic = toc; 
 
         player.tick();
+
+        if (progress_bar.scaleX > 250) {
+            
+            sound_alarm.play();
+            if (end_time > 2.5) {
+                kid_texts[0].text = "I'M TOO YOUNG!";
+                kid_texts[1].text = "I paid $10 for this!\nThis can't happen!";
+                kid_texts[2].text = "cranapple";
+                kid_texts[3].text = "I'm going to\ntweet about this.";
+            }
+            if (end_time > 5.0) {   
+                IN_ENDING = true;
+                return;
+            }
+            end_time += dt;
+            bg.y += (-5 + 10*Math.random());
+            player.y += (-5 + 10*Math.random());
+            for (var i = 0; i < NR_KIDS; i++) {
+                kids[i].y += (-5 + 10*Math.random());
+            }
+            player_text.y = 300;
+            player_text.x = 100;
+            player_text.text ="Uh oh, kids...looks like we're going down";
+            //crash.play();
+            stage.update();
+            return;
+        }
+
         if (timer < 15) {
             progress_bar.scaleX += 1*dt;
         } else if (timer < 30) {
@@ -206,7 +284,8 @@
             progress_bar.scaleX += 6*dt;
         } 
         timer += dt;
-        score.text = "Time under control: "+timer.toString()+"s";
+        score.text = "Time under control: "+timer.toFixed(2)+"s";
+        console.log(progress_bar.scaleX);
         
         //Update the timers of the kids
         for (var i = 0; i < NR_KIDS; i++) {
@@ -232,38 +311,54 @@
         var overlap_id = -1;
         // Check for overlap, which depends on what direction we're facing
         for (var i = 0; i < NR_KIDS; i++) {
-            if (player.dir == 1) {
-               if ((player.x + PLAYER_WIDTH) > kids[i].x && (player.x + PLAYER_WIDTH) < (kids[i].x + KID_WIDTH)) {
-                    overlaps = true;
-                    overlap_id = i;
-                    break;
-                }
-            } else {
                 if (player.x > kids[i].x && player.x < (kids[i].x + KID_WIDTH)) {
                     overlaps = true;
                     overlap_id = i;
                     break;
                 }
-            }  
         }
         // If we overlap make sure the right action was chosen
         if (overlaps == true) {
             var isCorrect = false;
             if (KEY_JUSTPRESSED_A) {
+                sound_fire.play();
                 if (kid_states[overlap_id] == S_COLD) {
                    isCorrect = true;
                 }
+                if (kids[overlap_id].type == "boy") {
+                    kids[overlap_id].gotoAndPlay("fire_m");
+                } else {
+                    kids[overlap_id].gotoAndPlay("fire_f");
+                } 
             } else if (KEY_JUSTPRESSED_S) {
+                sound_water.play();
                 if (kid_states[overlap_id] == S_THIRSTY) {
                    isCorrect = true;
                 }
+                if (kids[overlap_id].type == "boy") {
+                    kids[overlap_id].gotoAndPlay("water_m");
+                } else {
+                    kids[overlap_id].gotoAndPlay("water_f");
+                }
             } else if (KEY_JUSTPRESSED_D) {
+                sound_food.play();
                 if (kid_states[overlap_id] == S_HUNGRY) {
                    isCorrect = true;
                 }
+                if (kids[overlap_id].type == "boy") {
+                    kids[overlap_id].gotoAndPlay("food_m");
+                } else {
+                    kids[overlap_id].gotoAndPlay("food_f");
+                }
             } else if (KEY_JUSTPRESSED_F) {
+                sound_wow.play();
                 if (kid_states[overlap_id] == S_SPOILED) {
                    isCorrect = true;
+                }
+                if (kids[overlap_id].type == "boy") {
+                    kids[overlap_id].gotoAndPlay("wow_m");
+                } else {
+                    kids[overlap_id].gotoAndPlay("wow_f");
                 }
             }
             if (isCorrect) {   
@@ -271,16 +366,22 @@
                 if (kids[i].type == "boy") sound_boy.play();
                 if (kids[i].type == "girl") sound_girl.play();
                 kid_timers[overlap_id] = 0.0;
+                player.gotoAndPlay("correct_l");
                 //correct_sound.play();
                 progress_bar.scaleX -= 10;
             } else {
                 sound_buzzer.play();
-                //player.gotoAndPlay("wrong");
+                if (player.dir == 1) {
+                    player.gotoAndPlay("wrong_l");
+                } else {
+                    player.gotoAndPlay("wrong_l");
+                }
                 progress_bar.scaleX += 15; 
             }
         } else {
-           //player.gotoAndPlay("confused");
-           //buzz_sound.play();
+           player.gotoAndPlay("wrong_l");
+           sound_buzzer.play();
+           progress_bar.scaleX += 5;
         }
     }
     function handleKeyDown(e) {
@@ -288,12 +389,13 @@
         switch (e.keyCode) {
             case KEYCODE_LEFT: 
                 player.KEY_LEFT = true;
+                sound_walk.play();
+
                 player.dir = -1;
-                player.gotoAndPlay("idle_l");
                 break;
             case KEYCODE_RIGHT:
                 player.KEY_RIGHT = true;
-                player.gotoAndPlay("idle_r");
+                sound_walk.play();
                 player.dir = 1;
                 break;
         
@@ -305,9 +407,11 @@
         switch (e.keyCode) {
             case KEYCODE_LEFT:
                 player.KEY_LEFT = false;
+                player.gotoAndPlay("idle_l");
                 break;
             case KEYCODE_RIGHT:
                 player.KEY_RIGHT = false;
+                player.gotoAndPlay("idle_r");
                 break;
             case KEYCODE_A:
                 KEY_JUSTPRESSED_A = true;
@@ -336,6 +440,12 @@
         <audio id="sound_buzzer" src = "res/buzzer.mp3" type = "audio/mp3"> </audio>
         <audio id="sound_girl" src = "res/girl-voice.mp3" type = "audio/mp3" </audio>
         <audio id="sound_boy" src = "res/boy-voice.mp3" type = "audio/mp3"></audio>
+        <audio id="sound_fire" src = "res/fire.mp3" type = "audio/mp3"></audio>
+        <audio id="sound_food" src = "res/food.mp3" type = "audio/mp3"></audio>
+        <audio id="sound_water" src = "res/water.mp3" type = "audio/mp3"></audio>
+        <audio id="sound_wow" src = "res/wow.mp3" type = "audio/mp3"></audio>
+        <audio id="sound_alarm" src ="res/alarm.mp3" type = "audio/mp3"></audio>
+        <audio id="sound_walk" src ="res/walk.mp3" type = "audio/mp3"></audio>
         <audio id="tiny_loop" src = "res/tiny_loop.mp3" type = "audio/mp3"> </audio>
     </div>
 </body>

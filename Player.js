@@ -16,7 +16,10 @@
             frames:  {width: 100, height:300},
             animations: {
                 idle_l: [0,0,"idle_l",10],
-                idle_r: [1,1,"idle_r",10]
+                idle_r: [1,1,"idle_r",10],
+                walk_l: [2,5,"walk_l",5],
+                wrong_l:[6,8,"idle_l",10],
+                correct_l:[9,9,"correct_l",10]
             }
         });
 
@@ -32,8 +35,18 @@
     Player.prototype.tick = function () {
         if (this.KEY_RIGHT) {
             this.x += 8;
+            if (this.idle) {
+                this.gotoAndPlay("walk_l");
+                this.idle = false;
+            }
         } else if (this.KEY_LEFT) {
             this.x -= 8;
+            if (this.idle) {
+                this.gotoAndPlay("walk_l");
+                this.idle = false;
+            }
+        } else {
+            this.idle = true;
         }
         //console.log(this.x,this.y);
     }
