@@ -1,0 +1,115 @@
+<html lang="en"> 
+<head>
+
+<title>Airplane Adventure</title>
+
+<style>
+    #stageCanvas
+    {
+        background-color:#333333;
+    }
+</style>
+
+<script src="easel.js"></script>
+<script src="ContentManager.js"></script>
+<script src="Player.js"></script>
+
+<script>
+    var stage;
+    var circle;
+    var CIRCLE_RADIUS = 10;
+    var circleXReset;
+    var bounds;
+    var canvas;
+    var contentManager;
+
+    /* Keypress bindings? */
+    var KEYCODE_LEFT = 37;
+    var KEYCODE_RIGHT = 39;
+
+    /* Sprites */
+    var player;
+    var bg;
+
+    function init() {
+        canvas = document.getElementById("stageCanvas");
+        bounds = new Rectangle();
+        bounds.width = canvas.width;
+        bounds.height = canvas.height;
+        stage = new Stage(canvas);
+        
+        contentManager = new ContentManager();
+        contentManager.SetDownloadCompleted(startGame);
+        contentManager.StartDownload();
+    } 
+    
+   function startGame() {
+
+        document.onkeydown = handleKeyDown;
+        document.onkeyup = handleKeyUp;
+
+        var g = new Graphics();
+        g.setStrokeStyle(1);
+        g.beginStroke(Graphics.getRGB(255,255,255,.7));
+        g.drawCircle(0,0,CIRCLE_RADIUS);
+        circle = new Shape(g);
+        circle.x = circleXReset = -CIRCLE_RADIUS;
+        circle.y = canvas.height / 2;
+        stage.addChild(circle);
+
+
+        player = new Player(contentManager.img_player, 30, 30);
+        player.x = 30;
+        player.y = 30;
+        stage.addChild(player);
+        stage.update();
+        Ticker.addListener(window);
+        Ticker.setFPS(60);
+        Ticker.useRAF = true;
+    }
+       
+    function tick() {
+        if (circle.x > bounds.width) {
+            circle.x = circleXReset;
+        }
+        circle.x += 8;
+        player.tick();
+        stage.update();
+    }
+
+    function handleKeyDown(e) {
+        if (!e) { var e = window.event; } //No clue.
+        switch (e.keyCode) {
+            case KEYCODE_LEFT: 
+                player.KEY_LEFT = true;
+                break;
+            case KEYCODE_RIGHT:
+                player.KEY_RIGHT = true;
+                break;
+        
+        }
+    }
+
+    function handleKeyUp(e) {
+        if (!e) { var e = window.event; }
+        switch (e.keyCode) {
+            case KEYCODE_LEFT:
+                player.KEY_LEFT = false;
+                break;
+            case KEYCODE_RIGHT:
+                player.KEY_RIGHT = false;
+                break;
+        }
+    }
+</script>
+
+
+</head>
+
+<body onload="init()">
+    <div width="640" height="480" id="canvasWrapper">
+        <canvas width="640" height="480" id="stageCanvas"></canvas>
+    </div>
+</body>
+</html>
+
